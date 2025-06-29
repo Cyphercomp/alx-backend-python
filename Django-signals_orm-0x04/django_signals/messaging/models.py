@@ -1,0 +1,25 @@
+from django.db import models
+from django.contrib.auth.models import User
+# Create your models here.
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE , related_name='sender')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE , related_name='receipient')
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"From {self.sender.username} to {self.receiver.username}"
+
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    text = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.username}: {self.text}"
+
+
