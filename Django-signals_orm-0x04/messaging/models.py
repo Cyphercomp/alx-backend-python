@@ -15,6 +15,7 @@ class Message(models.Model):
     edited = models.BooleanField(default=False)
     edited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='edited_messages') 
     read = models.BooleanField(default=False)
+    parent_message = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
 
     objects = models.Manager()  # Default manager
     unread = UnreadMessagesManager()  # Custom manager
