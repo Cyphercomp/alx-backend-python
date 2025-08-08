@@ -1,0 +1,4 @@
+Test creating a conversation, sending messages and fetching conversations
+
+Test authentication (JWT token login) and ensure that 
+unauthorized users cannot access private conversations.

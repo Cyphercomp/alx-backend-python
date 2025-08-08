@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+sudo systemctl enable docker --now
+sudo minikube start
+kubectl cluster-info

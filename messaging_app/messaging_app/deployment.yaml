@@ -1,0 +1,38 @@
+apiVersion : apps/v1
+kind : deployment
+metadata: 
+  name: messaging_app
+  labels:
+    app: messaging_app
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: messaging_app
+    template:
+      metadata:
+        labels:
+          app: messaging_app
+      spec:
+        containers:
+          - name: docker-compose
+            image: app:latest
+            ports:
+              - containerPort: 8000
+            imagePullPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: messaging_app-service
+spec:
+  selector:
+    app: messaging_app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+
+

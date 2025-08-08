@@ -1,0 +1,42 @@
+# version: "23.0.1"  # Use a compatible Compose file version
+services:
+  web:
+    build: .  # Assumes Dockerfile is in the root of the project ./wait-for-it.sh -t 300 db:3306 &&
+    command: /bin/sh -c "./wait-for-it.sh -t 300 db:3306 --strict -- \
+      &&python3 manage.py runserver && python manage.py makemigrations\
+      && python manage.py migrate"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_SETTINGS_MODULE: messaging_app.settings
+      MYSQL_HOST: ${MYSQL_HOST} # Service name resolves to the DB container's IP
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD : ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DB: ${MYSQL_DB}
+
+  db:
+    image: mysql:8.0 # Or your preferred MySQL version
+    environment:
+      MYSQL_ROOT_PASSWORD : ${MYSQL_ROOT_PASSWORD}
+      # MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DB: ${MYSQL_DB}
+    # ports:
+    #   - "3306:3306"  # Only for local development and debugging (REMOVE in production!)
+    volumes:
+      - db_data:/var/lib/mysql #persist data in volume
+    healthcheck:
+      test: ["CMD","mysqladmin","ping", "-h" ,"localhost"]
+      interval: 1m30s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  db_data:
