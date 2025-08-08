@@ -1,0 +1,3 @@
+2025-06-24 01:49:22,840 - __main__ - INFO : Executing: [] - ['SELECT * FROM users']
+2025-06-24 01:53:29,052 - __main__ - INFO : Executing: [] - ['query=SELECT * FROM users']
+2025-06-24 02:58:01,864 - __main__ - INFO : Executing: [] - ['query=SELECT * FROM users']
