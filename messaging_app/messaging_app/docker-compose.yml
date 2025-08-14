@@ -1,42 +1,47 @@
-# version: "23.0.1"  # Use a compatible Compose file version
+# Docker Compose configuration for a Django application with MySQL database
+
 services:
+  db:
+    image: mysql:8.3
+    container_name: messaging_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_DB: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
   web:
-    build: .  # Assumes Dockerfile is in the root of the project ./wait-for-it.sh -t 300 db:3306 &&
-    command: /bin/sh -c "./wait-for-it.sh -t 300 db:3306 --strict -- \
-      &&python3 manage.py runserver && python manage.py makemigrations\
-      && python manage.py migrate"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: messaging_web
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: messaging_app.settings
     volumes:
       - .:/app
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DJANGO_SETTINGS_MODULE: messaging_app.settings
-      MYSQL_HOST: ${MYSQL_HOST} # Service name resolves to the DB container's IP
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD : ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DB: ${MYSQL_DB}
 
-  db:
-    image: mysql:8.0 # Or your preferred MySQL version
-    environment:
-      MYSQL_ROOT_PASSWORD : ${MYSQL_ROOT_PASSWORD}
-      # MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DB: ${MYSQL_DB}
-    # ports:
-    #   - "3306:3306"  # Only for local development and debugging (REMOVE in production!)
-    volumes:
-      - db_data:/var/lib/mysql #persist data in volume
-    healthcheck:
-      test: ["CMD","mysqladmin","ping", "-h" ,"localhost"]
-      interval: 1m30s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
+    # Development: runserver
+    command: >
+      sh -c "python manage.py migrate &&
+             python3 manage.py runserver 0.0.0.0:8000"
+
+    # Production: gunicorn
+    # command: >
+    #   sh -c "python manage.py migrate &&
+    #          gunicorn messaging_app.wsgi:application --bind 0.0.0.0:8000"
 
 volumes:
   db_data:

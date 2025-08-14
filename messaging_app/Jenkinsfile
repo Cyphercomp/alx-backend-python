@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    tools {
+        python 'Python3' // Make sure Python is configured in Jenkins tools
+    }
+
+    environment {
+        VENV_DIR = 'venv'
+        DOCKER_IMAGE = 'your-dockerhub-username/messaging_app'
+        DOCKER_TAG = 'latest'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'github-creds',
+                    url: 'https://github.com/sakachris/alx-backend-python.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    python3 -m venv $VENV_DIR
+                    source $VENV_DIR/bin/activate
+                    pip3 install --upgrade pip
+                    pip3 install -r messaging_app/requirements.txt
+                '''
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh '''
+                    source $VENV_DIR/bin/activate
+                    cd messaging_app
+                    pytest --junitxml=report.xml
+                '''
+            }
+        }
+
+        stage('Publish Report') {
+            steps {
+                junit 'messaging_app/report.xml'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh '''
+                        docker build -t $DOCKER_IMAGE:$DOCKER_TAG -f messaging_app/Dockerfile .
+                    '''
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+                    sh '''
+                        echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                        docker push $DOCKER_IMAGE:$DOCKER_TAG
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'messaging_app/report.xml', fingerprint: true
+        }
+    }
+}

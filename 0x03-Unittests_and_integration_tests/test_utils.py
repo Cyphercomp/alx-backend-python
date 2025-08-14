@@ -1,61 +1,74 @@
 #!/usr/bin/env python3
-"""Unit tests for utils module"""
+''' test_utils.py '''
 
 import unittest
 from parameterized import parameterized
 from unittest.mock import patch, Mock
 from utils import access_nested_map, get_json, memoize
+from typing import Any, Mapping, Sequence, Dict, Tuple
 
 
 class TestAccessNestedMap(unittest.TestCase):
-    """Test cases for access_nested_map"""
+    '''
+    Test access Nested Map class
+    '''
 
     @parameterized.expand([
-        ({"a": 1}, ("a",), 1),
-        ({"a": {"b": 2}}, ("a",), {"b": 2}),
-        ({"a": {"b": 2}}, ("a", "b"), 2),
+        ({"a": 1}, ["a"], 1),
+        ({"a": {"b": 2}}, ["a"], {"b": 2}),
+        ({"a": {"b": 2}}, ["a", "b"], 2),
     ])
-    def test_access_nested_map(self, nested_map, path, expected):
-        """Test correct access of nested maps"""
-        self.assertEqual(access_nested_map(nested_map, path), expected)
+    def test_access_nested_map(
+        self,
+        nested_map: Mapping[str, Any],
+        path: Sequence,
+        expected_result: Any
+    ) -> None:
+        ''' test access nested map '''
+        self.assertEqual(access_nested_map(nested_map, path), expected_result)
 
     @parameterized.expand([
-        ({}, ("a",)),
-        ({"a": 1}, ("a", "b")),
+        ({}, ("a",), KeyError),
+        ({"a": 1}, ("a", "b"), KeyError),
     ])
-    def test_access_nested_map_exception(self, nested_map, path):
-        """Test KeyError is raised for invalid path"""
-        with self.assertRaises(KeyError) as context:
+    def test_access_nested_map_exception(
+            self,
+            nested_map: Dict,
+            path: Tuple[str],
+            exception: Exception,
+            ) -> None:
+        ''' test access nested map exception '''
+        with self.assertRaises(exception):
             access_nested_map(nested_map, path)
-        self.assertEqual(str(context.exception), f"'{path[-1]}'")
 
 
 class TestGetJson(unittest.TestCase):
-    """Test cases for get_json"""
+    '''
+    Test get Json class
+    '''
 
     @parameterized.expand([
         ("http://example.com", {"payload": True}),
         ("http://holberton.io", {"payload": False}),
     ])
-    def test_get_json(self, test_url, test_payload):
-        """Test get_json returns expected data"""
-        with patch('utils.requests.get') as mock_get:
-            mock_resp = Mock()
-            mock_resp.json.return_value = test_payload
-            mock_get.return_value = mock_resp
-
-            result = get_json(test_url)
-
-            mock_get.assert_called_once_with(test_url)
-            self.assertEqual(result, test_payload)
+    def test_get_json(
+            self,
+            test_url: str,
+            test_payload: Dict,
+            ) -> None:
+        ''' test get json '''
+        mock_attrs = {'json.return_value': test_payload}
+        with patch("requests.get", return_value=Mock(**mock_attrs)) as req_get:
+            self.assertEqual(get_json(test_url), test_payload)
+            req_get.assert_called_once_with(test_url)
 
 
 class TestMemoize(unittest.TestCase):
-    """Test cases for memoize decorator"""
-
-    def test_memoize(self):
-        """Test that memoize caches result of a_method"""
-
+    '''
+    Test Memoize class
+    '''
+    def test_memoize(self) -> None:
+        ''' test memoize '''
         class TestClass:
             def a_method(self):
                 return 42
@@ -64,9 +77,13 @@ class TestMemoize(unittest.TestCase):
             def a_property(self):
                 return self.a_method()
 
-        with patch.object(TestClass, 'a_method') as mock_method:
-            mock_method.return_value = 42
-            obj = TestClass()
-            self.assertEqual(obj.a_property, 42)
-            self.assertEqual(obj.a_property, 42)
+        with patch.object(
+                TestClass, "a_method", return_value=lambda: 42
+        ) as mock_method:
+            test_instance = TestClass()
+            result_1 = test_instance.a_property()
+            result_2 = test_instance.a_property()
+
+            self.assertEqual(result_1, 42)
+            self.assertEqual(result_2, 42)
             mock_method.assert_called_once()

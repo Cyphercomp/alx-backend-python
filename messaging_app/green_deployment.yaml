@@ -1,0 +1,26 @@
+# green_deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-green
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: messaging
+      version: green
+  template:
+    metadata:
+      labels:
+        app: messaging
+        version: green
+    spec:
+      containers:
+      - name: messaging-container
+        image: messaging-app:local
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DJANGO_SETTINGS_MODULE
+          value: "messaging_app.settings"

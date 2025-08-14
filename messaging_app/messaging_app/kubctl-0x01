@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# kubctl-0x01 - Scale and Monitor Django App in Kubernetes
+
+APP_NAME="messaging-app"
+
+echo "🔄 Scaling $APP_NAME deployment to 3 replicas..."
+kubectl scale deployment $APP_NAME --replicas=3
+
+echo "⏳ Waiting for pods to be ready..."
+sleep 10
+
+echo "📦 Listing all pods:"
+kubectl get pods -l app=messaging
+
+echo "🧪 Performing load testing with wrk..."
+
+# Start port forwarding in the background
+kubectl port-forward service/messaging-service 8000:80 &
+PORT_PID=$!
+sleep 3  # Allow port-forwarding to stabilize
+
+# Run wrk test (30s, 4 threads, 20 connections)
+wrk -t4 -c20 -d30s http://localhost:8000/ || echo "⚠️ wrk not installed or failed"
+
+# Kill port-forward process
+kill $PORT_PID
+
+echo "📊 Monitoring resource usage:"
+kubectl top pods

@@ -1,38 +1,36 @@
-apiVersion : apps/v1
-kind : deployment
-metadata: 
-  name: messaging_app
-  labels:
-    app: messaging_app
-  spec:
-    replicas: 1
-    selector:
-      matchLabels:
-        app: messaging_app
-    template:
-      metadata:
-        labels:
-          app: messaging_app
-      spec:
-        containers:
-          - name: docker-compose
-            image: app:latest
-            ports:
-              - containerPort: 8000
-            imagePullPolicy: Always
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: messaging
+  template:
+    metadata:
+      labels:
+        app: messaging
+    spec:
+      containers:
+      - name: messaging-container
+        image: messaging-app:local3
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DJANGO_SETTINGS_MODULE
+          value: "messaging_app.settings"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: messaging_app-service
+  name: messaging-service
 spec:
   selector:
-    app: messaging_app
+    app: messaging
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8000
   type: ClusterIP
-
-

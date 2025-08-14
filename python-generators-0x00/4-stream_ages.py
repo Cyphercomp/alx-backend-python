@@ -1,42 +1,40 @@
-#!/usr/bin/python3
-import mysql.connector
+from decimal import Decimal
+from seed import connect_to_prodev
 
 def stream_user_ages():
-    """Generator to yield user ages one by one from the database"""
-    try:
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="your_password",  # update accordingly
-            database="ALX_prodev"
-        )
-    except mysql.connector.Error as err:
-        print(f"Error connecting to database: {err}")
-        return
+    """Generator that yields user ages one at a time from the database."""
+    connection = connect_to_prodev()
+    cursor = connection.cursor()
 
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT age FROM user_data")
-        for (age,) in cursor:
+    cursor.execute("SELECT age FROM user_data")
+
+    for (age,) in cursor:
+        if isinstance(age, Decimal):
+            yield int(age)
+        else:
             yield age
-    finally:
-        cursor.close()
-        conn.close()
 
+    cursor.close()
+    connection.close()
 
-def average_age():
-    """Calculates average age using stream_user_ages generator without loading all data at once"""
+def compute_average_age():
+    """
+    Computes and prints the average age of users by iterating over a stream of user ages.
+    If no users are found, it prints a message indicating this.
+    """
     total_age = 0
     count = 0
+
     for age in stream_user_ages():
         total_age += age
         count += 1
+
     if count == 0:
         print("No users found.")
-        return
-    avg = total_age / count
-    print(f"Average age of users: {avg:.2f}")
+    else:
+        average_age = total_age / count
+        print(f"Average age of users: {average_age:.2f}")
 
 
 if __name__ == "__main__":
-    average_age()
+    compute_average_age()

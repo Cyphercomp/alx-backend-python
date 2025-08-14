@@ -1,29 +1,75 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10
+# Dockerfile
 
-# Set the working directory to /app
+# syntax=docker/dockerfile:1.4
+
+# Base image
+FROM python:3.10-slim
+
+# Metadata
+LABEL maintainer="Saka Chris <sakachris90@gmail.com>" \
+      description="Dockerfile for Django Messaging App" \
+      version="1.0"
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Set working directory
 WORKDIR /app
 
-# Copy the requirements file into the container at /app
-COPY requirements.txt /app/
-# Udating pip
-RUN pip install --upgrade pip
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    default-libmysqlclient-dev \
+    libpq-dev \
+    curl \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+    
+# Install Python packages
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code into the container
-COPY . /app/
+# Copy app source code
+COPY . .
 
-# Expose port 8000 for the Django app
+# Collect static files for production
+# RUN python manage.py collectstatic --noinput
+
+# Expose Django port
 EXPOSE 8000
 
-# Define environment variable for Django settings module (optional, but recommended)
-# If you're using a specific settings file, replace 'your_project.settings'
-# ENV DJANGO_SETTINGS_MODULE=your_project.settings
+# Development: use runserver
+CMD ["python", "manage.py", "runserver", "-p", "0.0.0.0:8000"]
 
-# # Run migrations
-# RUN  python manage.py makemigrations
-# RUN  python manage.py migrate
+# Production:
+# CMD ["gunicorn", "messaging_app.wsgi:application", "--bind", "0.0.0.0:8000"]
 
-# # Start the Django development server (you might need to adjust the command for production)
-CMD ["./wait-for-it.sh", "db:3306", "--","python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Initial Dockerfile for Django Messaging App
+
+# # Step 1: Using the official Python image
+# FROM python:3.10-slim
+
+# # Step 2: Setting environment variables
+# ENV PYTHONDONTWRITEBYTECODE 1
+# ENV PYTHONUNBUFFERED 1
+# # ENV PYTHONDONTWRITEBYTECODE=1
+# # ENV PYTHONUNBUFFERED=1
+
+# # Step 3: Setting work directory
+# WORKDIR /app
+
+# # Step 4: Installing dependencies
+# COPY requirements.txt /app/
+# RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+# RUN apt-get update && apt-get install -y default-libmysqlclient-dev gcc
+
+# # Step 5: Copying project files
+# COPY . /app/
+
+# # Step 6: Exposing the port Django runs on
+# # EXPOSE 8000
+
+# # Step 7: Running development server
+# # CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

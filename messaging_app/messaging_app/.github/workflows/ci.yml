@@ -1,0 +1,75 @@
+name: Django CI with Linting and Coverage
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: test_db
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_pass
+          MYSQL_ROOT_PASSWORD: root_pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    env:
+      DJANGO_SECRET_KEY: testsecret
+      DEBUG: 1
+      DB_NAME: test_db
+      DB_USER: test_user
+      DB_PASSWORD: test_pass
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install MySQL client and dependencies
+      run: sudo apt-get update && sudo apt-get install -y default-libmysqlclient-dev
+
+    - name: Install Python dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r messaging_app/requirements.txt
+        pip install flake8 pytest pytest-cov
+
+    - name: Run Linting (flake8)
+      run: |
+        source venv/bin/activate
+        flake8 messaging_app/
+      # This step fails the build if flake8 exits with non-zero
+
+    - name: Run Django tests with coverage
+      run: |
+        source venv/bin/activate
+        pytest --cov=messaging_app --cov-report=xml --cov-report=html
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: |
+          htmlcov/
+          coverage.xml

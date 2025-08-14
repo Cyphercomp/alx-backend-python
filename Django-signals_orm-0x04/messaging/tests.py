@@ -2,14 +2,15 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from .models import Message, Notification
 
-class MessagingTestCase(TestCase):
-    def setUp(self):
-        self.sender = User.objects.create_user(username='sender', password='pass')
-        self.receiver = User.objects.create_user(username='receiver', password='pass')
+class MessagingSignalTest(TestCase):
 
-    def test_notification_created_on_message(self):
-        message = Message.objects.create(sender=self.sender, receiver=self.receiver, content='Hello!')
-        notification = Notification.objects.filter(user=self.receiver, message=message).first()
-        self.assertIsNotNone(notification)
-        self.assertEqual(notification.user, self.receiver)
-        self.assertEqual(notification.message, message)
+    def setUp(self):
+        self.user1 = User.objects.create_user(username='alice', password='test123')
+        self.user2 = User.objects.create_user(username='bob', password='test123')
+
+    def test_notification_created_on_new_message(self):
+        message = Message.objects.create(sender=self.user1, receiver=self.user2, content="Hello Bob!")
+
+        notifications = Notification.objects.filter(user=self.user2)
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications.first().message, message)

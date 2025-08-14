@@ -1,30 +1,30 @@
-#!/usr/bin/env python3
-
-import sqlite3 
+import sqlite3
 import functools
 
+
+# Decorator that opens and closes a database connection automatically
 def with_db_connection(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        conn = None  # Initialize conn outside the try block for scope
+        conn = sqlite3.connect("users.db")  # Open a new database connection
         try:
-            conn = sqlite3.connect('users.db')
-            result = func(conn, *args, **kwargs)
-            return result
-        except sqlite3.Error as e:
-            print(f"Database error: {e}")
-            return None  # Or raise the exception
+            # Inject the connection as the first argument to the function
+            return func(conn, *args, **kwargs)
         finally:
-            if conn:
-                conn.close()
+            conn.close()  # Ensure the connection is closed even if an error occurs
+
     return wrapper
 
-@with_db_connection 
+
+@with_db_connection
 def get_user_by_id(conn, user_id):
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-    return cursor.fetchone() 
-#### Fetch user by ID with automatic connection handling 
+    cursor.execute(
+        "SELECT * FROM users WHERE id = ?", (user_id,)
+    )  # Execute parameterized query
+    return cursor.fetchone()  # Fetch and return the first result row
 
+
+# Fetch a user by ID with automatic DB connection handling
 user = get_user_by_id(user_id=1)
 print(user)

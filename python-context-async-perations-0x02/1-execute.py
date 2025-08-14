@@ -1,55 +1,70 @@
-#!/usr/bin/env python3
-"""
-Reusable Query Context Manager for executing SQL queries with parameters
-"""
-
-import mysql.connector
+import sqlite3
 
 
 class ExecuteQuery:
-    def __init__(self, query, params=None,
-                 host="localhost", user="root", password="", database="alx_prodev"):
-        """
-        Initialize with query, parameters, and connection settings
-        """
-        self.query = query
-        self.params = params or ()
-        self.host = host
-        self.user = user
-        self.password = password
-        self.database = database
-        self.conn = None
-        self.cursor = None
+    def __init__(self, db_name, query, params=None):
+        self.db_name = db_name  # Database file name
+        self.query = query  # SQL query string
+        self.params = params or ()  # Parameters for the query
+        self.connection = None  # Will hold the database connection
+        self.cursor = None  # Will hold the cursor object
+        self.result = None  # Will hold the result of the query
 
     def __enter__(self):
-        """
-        Connect to the database, execute the query and return results
-        """
-        self.conn = mysql.connector.connect(
-            host=self.host,
-            user=self.user,
-            password=self.password,
-            database=self.database
-        )
-        self.cursor = self.conn.cursor()
+        # Open connection and execute the query
+        self.connection = sqlite3.connect(self.db_name)
+        self.cursor = self.connection.cursor()
         self.cursor.execute(self.query, self.params)
-        return self.cursor.fetchall()
+        self.result = self.cursor.fetchall()
+        return self.result  # Return the result of the query
 
     def __exit__(self, exc_type, exc_value, traceback):
+        # Close connection safely
+        if self.connection:
+            self.connection.commit()
+            self.connection.close()
+        if exc_type:
+            print(f"An error occurred: {exc_value}")
+        return False  # Propagate any exceptions
+
+
+# --------- Example Usage ---------
+def setup_demo_data():
+    with sqlite3.connect("1-example.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS users")
+        cursor.execute(
+            """
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                age INTEGER NOT NULL
+            )
         """
-        Close the cursor and connection
-        """
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.close()
+        )
+        cursor.executemany(
+            "INSERT INTO users (name, age) VALUES (?, ?)",
+            [
+                ("Peter", 22),
+                ("Anne", 30),
+                ("Martin", 27),
+                ("Diana", 19),
+                ("Eve", 35),
+                ("Jane", 15),
+                ("John", 40),
+                ("Alice", 28),
+                ("Simon", 20),
+            ],
+        )
+        conn.commit()
 
 
-if __name__ == "__main__":
-    # Example: select users where age > 25
-    query = "SELECT * FROM users WHERE age > %s"
-    param = (25,)
+setup_demo_data()
 
-    with ExecuteQuery(query, param, database="your_database_name") as results:
-        for row in results:
-            print(row)
+# --------- Use the ExecuteQuery context manager ---------
+query = "SELECT * FROM users WHERE age > ?"
+param = (25,)
+
+with ExecuteQuery("1-example.db", query, param) as results:
+    for row in results:
+        print(row)
